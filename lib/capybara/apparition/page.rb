@@ -455,7 +455,11 @@ module Capybara::Apparition
 
       @session.on 'Page.frameAttached' do |**params|
         puts "**** frameAttached called with #{params}" if ENV['DEBUG']
+        # implemented this as my stripe iframes were tagged as
+        # "unknown frame for context"
         # @frames.get(params["frameId"]) = Frame.new(params)
+        frame_params = params.transform_keys{ |k| k.to_s.camelize(:lower).to_sym }
+        @frames.add(params[:frame_id], frame_params)
       end
 
       @session.on 'Page.frameDetached' do |frame_id:, **params|
@@ -627,7 +631,11 @@ module Capybara::Apparition
 
     def setup_network_interception
       async_command 'Network.setCacheDisabled', cacheDisabled: true
-      async_command 'Fetch.enable', handleAuthRequests: true
+      # disabled as my network requests were being killed despite calling
+      # Fetch.continueRequest on them. Happens only with chrome disable-web-security.
+      # project is a vitejs app using script(type=module) imports. Seems like it had to
+      # do with timing. If I spaced my imports with a sleep 0.1, they seemed to work ...
+      # async_command 'Fetch.enable', handleAuthRequests: true
     end
 
     def process_intercepted_fetch(interception_id, request, resource_type)
